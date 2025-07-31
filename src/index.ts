@@ -102,8 +102,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 },
             },
             {
+                name: "get_task_by_projectId_and_taskId",
+                description: "通过项目ID和任务ID获取任务",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        projectId: {
+                            type: "string",
+                            description: "项目ID",
+                        },
+                        taskId: {
+                            type: "string",
+                            description: "任务ID"
+                        }
+                    },
+                    required: ["projectId","taskId"]
+                }
+            },
+            {
                 name: "get_tasks_by_projectId",
-                description: "通过项目ID获取任务列表",
+                description: "通过项目ID获取项目中的任务列表",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -243,7 +261,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     ],
                 };
             }
+            case "get_task_by_projectId_and_taskId":{
+                const params: Record<string, any> = {};
+                if(!args.projectId||!args.taskId) throw new McpError(ErrorCode.InvalidRequest, "项目ID或任务ID为空")
+                if (args.projectId) params.projectId = args.projectId;
+                if (args.taskId) params.taskId = args.taskId;
+                const response = await dida365Api.get(`/open/v1/project/${params.projectId}/task/${params.taskId}`);
 
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `任务: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
             case "get_tasks_by_projectId": {
                 const params: Record<string, any> = {};
                 if (args.projectId) params.projectId = args.projectId;

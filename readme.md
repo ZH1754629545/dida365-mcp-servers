@@ -60,78 +60,71 @@ npm start
 
 ### 任务管理
 
-#### `create_task`
+#### `create_task` - 创建新任务
+- **参数**:
+  - `title` (string, 必需): 任务标题
+  - `projectId` (string, 必需): 项目ID
+  - `content` (string): 任务内容描述
+  - `dueDate` (string): 截止日期 (ISO 8601格式)
+  - `priority` (number): 优先级 (0-5)
 
-创建新任务
+#### `get_task_by_projectId_and_taskId` - 通过项目ID和任务ID获取任务
+- **参数**:
+  - `projectId` (string, 必需): 项目ID
+  - `taskId` (string, 必需): 任务ID
 
-参数：
+#### `get_tasks_by_projectId` - 通过项目ID获取项目中的任务列表
+- **参数**:
+  - `projectId` (string, 必需): 项目ID
 
-- `title` (必需): 任务标题
-- `projectId` (必需): 项目ID
-- `content` (可选): 任务内容描述
-- `dueDate` (可选): 截止日期 (ISO 8601格式)
-- `priority` (可选): 优先级 (0-5)
+#### `update_task` - 更新任务
+- **参数**:
+  - `taskId` (string, 必需): 任务ID
+  - `title` (string): 任务标题
+  - `content` (string): 任务内容
+  - `dueDate` (string): 截止日期
+  - `priority` (number): 优先级
+  - `status` (number): 任务状态 (0: 未完成, 1: 已完成)
 
-示例：
+#### `delete_task` - 删除任务
+- **参数**:
+  - `taskId` (string, 必需): 任务ID
+  - `projectId` (string, 必需): 项目ID
 
-```json
-{
-  "title": "完成项目报告",
-  "projectId": "6889c028e4b0c0adf7fbd502",
-  "content": "需要包含数据分析和结论",
-  "dueDate": "2024-12-31T23:59:59Z",
-  "priority": 3
-}
-```
-
-#### `get_tasks`
-
-获取任务列表
-
-参数：
-
-- `projectId` (可选): 项目ID
-- `limit` (可选): 限制返回数量
-- `offset` (可选): 偏移量
-
-#### `update_task`
-
-更新任务
-
-参数：
-
-- `taskId` (必需): 任务ID
-- `title` (可选): 任务标题
-- `content` (可选): 任务内容
-- `dueDate` (可选): 截止日期
-- `priority` (可选): 优先级
-- `status` (可选): 任务状态 (0: 未完成, 1: 已完成)
-
-#### `delete_task`
-
-删除任务
-
-参数：
-
-- `taskId` (必需): 任务ID
+#### `complete_task` - 完成任务
+- **参数**:
+  - `taskId` (string, 必需): 任务ID
+  - `projectId` (string, 必需): 项目ID
 
 ### 项目管理
 
-#### `get_projects`
+#### `get_projects` - 获取项目列表
+- **参数**: 无
 
-获取项目列表
+#### `get_project_by_projectId` - 根据项目ID获取项目
+- **参数**:
+  - `projectId` (string, 必需): 项目ID
 
-无参数需要。
+#### `create_project` - 创建新项目
+- **参数**:
+  - `name` (string, 必需): 项目名称
+  - `color` (string): 项目颜色, 例如 "#F18181"
+  - `sortOrder` (integer): 排序值, 默认为0
+  - `viewMode` (string): 视图模式 ("list", "kanban", "timeline")
+  - `kind` (string): 项目类型 ("TASK", "NOTE")
 
-#### `create_project`
+#### `update_project_by_projectID` - 根据projectId更新项目
+- **参数**:
+  - `projectId` (string, 必需): 项目ID
+  - `name` (string): 项目名称
+  - `color` (string): 项目颜色
+  - `sortOrder` (integer): 排序值, 默认为0
+  - `viewMode` (string): 视图模式 ("list", "kanban", "timeline")
+  - `kind` (string): 项目类型 ("TASK", "NOTE")
 
-创建新项目
-
-参数：
-
-- `name` (必需): 项目名称
-- `color` (可选): 项目颜色
-- `groupId` (可选): 项目组ID
+#### `update_project_by_projectID` - 根据projectId删除项目
+- **参数**:
+  - `projectId` (string, 必需): 项目ID
 
 ## 可用资源
 
@@ -164,21 +157,6 @@ npm start
 - 请求格式: JSON
 - 官方文档: https://developer.dida365.com/api#/openap
 
-### 请求示例
-
-创建任务的HTTP请求：
-
-```http
-POST https://api.dida365.com/open/v1/task
-Content-Type: application/json
-Authorization: Bearer 76ff983e-1e86-430b-ada4-8d237c50b208
-
-{
-  "title": "测试日程",
-  "projectId": "6889c028e4b0c0adf7fbd502"
-}
-```
-
 ## 错误处理
 
 服务包含完整的错误处理机制：
@@ -190,41 +168,6 @@ Authorization: Bearer 76ff983e-1e86-430b-ada4-8d237c50b208
 
 ## 开发说明
 
-### 添加新功能
-
-1. 在接口类型定义部分添加新的类型
-2. 在工具列表中注册新工具
-3. 在工具调用处理器中实现具体逻辑
-4. 更新文档
-
-### 调试
-
-启用调试模式：
-
-```bash
-DEBUG=* npm run dev
-```
-
-### 测试
-
-建议使用 MCP 客户端工具测试服务：
-
-```bash
-# 使用 MCP 检查器
-npx @modelcontextprotocol/inspector
-```
-
-## 许可证
-
-MIT License
-
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request！
-
-## 注意事项
-
-- 确保你的滴答清单账号已启用开放平台功能
-- API Token 具有一定的访问限制，请合理使用
-- 建议在生产环境中使用更安全的环境变量管理方案
-- 定期更新依赖包以获得安全修复

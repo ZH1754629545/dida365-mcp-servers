@@ -33,21 +33,49 @@ const dida365Api = axios.create({
 });
 
 // 接口类型定义
+interface ChecklistItem {
+    id?: string;                     // Subtask identifier
+    title?: string;                  // Subtask title
+    status?: 0 | 1 |number;                  // Completion status: Normal: 0, Completed: 1
+    completedTime?: string;          // Completed time in "yyyy-MM-dd'T'HH:mm:ssZ"
+    isAllDay?: boolean;              // All day
+    sortOrder?: number;              // Subtask sort order
+    startDate?: string;              // Start date time in "yyyy-MM-dd'T'HH:mm:ssZ"
+    timeZone?: string;               // Subtask timezone
+}
+
 interface Task {
-    id?: string;
-    title: string;
-    content?: string;
-    projectId: string;
-    dueDate?: string;
-    priority?: number;
-    status?: number;
+    id?: string;                     // Task identifier
+    projectId?: string;              // Task project id
+    title?: string;                  // Task title
+    isAllDay?: boolean;              // All day
+    completedTime?: string;          // Task completed time in "yyyy-MM-dd'T'HH:mm:ssZ"
+    content?: string;                // Task content
+    desc?: string;                   // Task description of checklist
+    dueDate?: string;                // Task due date time in "yyyy-MM-dd'T'HH:mm:ssZ"
+    items?: ChecklistItem[];         // Subtasks of Task
+    priority?: 0 | 1 | 3 | 5 | number;        // Task priority: None:0, Low:1, Medium:3, High:5
+    reminders?: string[];            // List of reminder triggers
+    repeatFlag?: string;             // Recurring rules of task
+    sortOrder?: number;              // Task sort order
+    startDate?: string;              // Start date time in "yyyy-MM-dd'T'HH:mm:ssZ"
+    status?: 0 | 2 | number;                  // Task completion status: Normal: 0, Completed: 2
+    timeZone?: string;               // Task timezone
 }
 
 interface Project {
     id?: string;
-    name: string;
+    name?: string;
     color?: string;
+    sortOrder?: number;
+    viewMode? : string;
+    kind? :string;
+    closed?:boolean;
     groupId?: string;
+    permission?:string;
+
+
+
 }
 
 interface TaskListResponse {
@@ -177,8 +205,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                             type: "string",
                             description: "任务ID",
                         },
+                        projectId: {
+                            type: "string",
+                            description: "项目ID"
+                        }
                     },
-                    required: ["taskId"],
+                    required: ["taskId","projectId"],
                 },
             },
             {
@@ -191,8 +223,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                             type: "string",
                             description: "任务ID",
                         },
+                        projectId: {
+                            type: "string",
+                            description: "项目ID"
+                        }
                     },
-                    required: ["taskId"],
+                    required: ["taskId","projectId"],
                 },
             },
             {
@@ -205,6 +241,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 },
             },
             {
+                name: "get_project_by_projectId",
+                description: "根据项目ID获取项目",
+                properties: {
+                    projectId: {
+                        type: "string",
+                        description: "项目ID"
+                    }
+                },
+                required: ["projectId"]
+            },
+            {
                 name: "create_project",
                 description: "创建新项目",
                 inputSchema: {
@@ -212,20 +259,76 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     properties: {
                         name: {
                             type: "string",
-                            description: "项目名称",
+                            description: "name of the project",
+                        },
+                        color: {
+                            type: "string",
+                            description: 'color of project, eg. "#F18181"',
+                        },
+                        sortOrder:{
+                            type:"integer (int64)",
+                            description:"sort order value, default 0"
+                        },
+                        viewMode:{
+                            type:"string",
+                            description:'view mode, "list", "kanban", "timeline"'
+                        },
+                        kind:{
+                            type:"string",
+                            description:'project kind, "TASK", "NOTE"'
+                        }
+                    },
+                    required: ["name"],
+                },
+            },
+            {
+                name: "update_project_by_projectID",
+                description: "根据projectId更新项目",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        projectId:{
+                            type: "string",
+                            description: "项目Id"
+                        },
+                        name: {
+                            type: "string",
+                            description: "项目名称"
                         },
                         color: {
                             type: "string",
                             description: "项目颜色",
                         },
-                        groupId: {
-                            type: "string",
-                            description: "项目组ID",
+                        sortOrder:{
+                            type:"integer (int64)",
+                            description:"sort order value, default 0"
                         },
+                        viewMode:{
+                            type:"string",
+                            description:'view mode, "list", "kanban", "timeline"'
+                        },
+                        kind:{
+                            type:"string",
+                            description:'project kind, "TASK", "NOTE"'
+                        }
                     },
-                    required: ["name"],
+                    required: ["projectId"],
                 },
             },
+            {
+                name: "update_project_by_projectID",
+                description: "根据projectId删除项目",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        projectId:{
+                            type: "string",
+                            description: "项目Id"
+                        }
+                    },
+                    required: ["projectId"],
+                },
+            }
         ],
     };
 });
@@ -317,7 +420,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
             case "delete_task": {
                 const taskId = args.taskId as string;
-                await dida365Api.delete(`/task/${taskId}`);
+                const projectId = args.projectId as string;
+                throwValidError(projectId,taskId);
+                await dida365Api.delete(`/project/${projectId}/task/${taskId}`);
 
                 return {
                     content: [
@@ -345,8 +450,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case "create_project": {
                 const project: Project = {
                     name: args.name as string,
-                    ...(args.color ? { color: args.color as string } : {}),
-                    ...(args.groupId ? { groupId: args.groupId as string } : {}),
+                    ...(args.color ? {color: args.color as string} : {}),
+                    ...(args.sortOrder ? {sortOrder: args.sortOrder as number} : 0),
+                    ...(args.viewMode ? {viewMode: args.viewMode as string} : {}),
+                    ...(args.kind ? {kind: args.kind as string} : {}),
                 };
 
                 const response: AxiosResponse = await dida365Api.post("/project", project);
@@ -359,6 +466,70 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         },
                     ],
                 };
+            }
+            case "update_project_by_projectID":{
+                const project: Project = {
+                    id : args.projectId as string,
+                    name: args.name as string,
+                    ...(args.color ? { color: args.color as string } : {}),
+                    ...(args.sortOrder ? {sortOrder: args.sortOrder as number}:0),
+                    ...(args.viewMode ? {viewMode: args.viewMode as string}:{}),
+                    ...(args.kind ? {kind:args.kind as string}:{})
+                };
+                throwValidError(args.projectId as string,"1");
+                const response: AxiosResponse = await dida365Api.post("/project", project);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `项目创建成功: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+            case "update_project_by_projectID":{
+                const projectId:string = args.projectId as string;
+                throwValidError(projectId,"1");
+
+                const response: AxiosResponse = await dida365Api.delete(`/project/${projectId}`);
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `删除项目成功: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+            case "complete_task":{
+                const taskId = args.taskId as string;
+                const projectId = args.projectId as string;
+                throwValidError(projectId,taskId);
+
+                const response: AxiosResponse = await  dida365Api.post(`/project/${projectId}/task/${taskId}/complete`)
+
+                return {
+                    content:[
+                        {
+                            type:"text",
+                            text: `任务更新: ${JSON.stringify(response.data, null, 2)}`
+                        }
+                    ]
+                }
+            }
+            case "get_project_by_projectId":{
+                const projectId = args.projectId as string;
+                throwValidError(projectId,"1");
+                const response: AxiosResponse = await  dida365Api.get(`project/${projectId}`);
+                return {
+                    content:[
+                        {
+                            type:"text",
+                            text: `获取project成功: ${JSON.stringify(response.data, null, 2)}`
+                        }
+                    ]
+                }
             }
 
             default:
@@ -456,6 +627,11 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
         );
     }
 });
+function throwValidError(projectId : string,taskId : string){
+    if(!projectId&&!taskId) throw new McpError(ErrorCode.InvalidRequest,"projectId 和 taskId 为空")
+    if(!projectId) throw new McpError(ErrorCode.InvalidRequest,"projectId 为空")
+    if(!taskId) throw new McpError(ErrorCode.InvalidRequest,"taskId 为空")
+}
 
 // 启动服务器
 async function main() {

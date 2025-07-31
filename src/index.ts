@@ -1,0 +1,437 @@
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+    CallToolRequestSchema,
+    ErrorCode,
+    ListResourcesRequestSchema,
+    ListToolsRequestSchema,
+    McpError,
+    ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import axios, { AxiosResponse } from "axios";
+import dotenv from "dotenv";
+
+// 加载环境变量
+dotenv.config();
+
+// 滴答清单API基础配置
+const DIDA365_BASE_URL = "https://api.dida365.com/open/v1";
+const DIDA365_TOKEN = process.env.DIDA365_TOKEN;
+
+if (!DIDA365_TOKEN) {
+    console.error("Error: DIDA365_TOKEN not found in environment variables");
+    process.exit(1);
+}
+
+// 创建axios实例
+const dida365Api = axios.create({
+    baseURL: DIDA365_BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+        Authorization: DIDA365_TOKEN,
+    },
+});
+
+// 接口类型定义
+interface Task {
+    id?: string;
+    title: string;
+    content?: string;
+    projectId: string;
+    dueDate?: string;
+    priority?: number;
+    status?: number;
+}
+
+interface Project {
+    id?: string;
+    name: string;
+    color?: string;
+    groupId?: string;
+}
+
+interface TaskListResponse {
+    tasks: Task[];
+    total: number;
+}
+
+interface ProjectListResponse {
+    projects: Project[];
+}
+
+// 创建服务器实例
+const server = new Server(
+    {
+        name: "dida365-mcp-server",
+        version: "1.0.0",
+    },
+);
+
+// 工具列表
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+        tools: [
+            {
+                name: "create_task",
+                description: "创建新任务",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        title: {
+                            type: "string",
+                            description: "任务标题",
+                        },
+                        projectId: {
+                            type: "string",
+                            description: "项目ID",
+                        },
+                        content: {
+                            type: "string",
+                            description: "任务内容描述",
+                        },
+                        dueDate: {
+                            type: "string",
+                            description: "截止日期 (ISO 8601格式)",
+                        },
+                        priority: {
+                            type: "number",
+                            description: "优先级 (0-5)",
+                        },
+                    },
+                    required: ["title", "projectId"],
+                },
+            },
+            {
+                name: "get_tasks_by_projectId",
+                description: "通过项目ID获取任务列表",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        projectId: {
+                            type: "string",
+                            description: "项目ID",
+                        },
+                    },
+                    required: ["projectId"],
+                },
+            },
+            {
+                name: "update_task",
+                description: "更新任务",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        taskId: {
+                            type: "string",
+                            description: "任务ID",
+                        },
+                        title: {
+                            type: "string",
+                            description: "任务标题",
+                        },
+                        content: {
+                            type: "string",
+                            description: "任务内容",
+                        },
+                        dueDate: {
+                            type: "string",
+                            description: "截止日期",
+                        },
+                        priority: {
+                            type: "number",
+                            description: "优先级",
+                        },
+                        status: {
+                            type: "number",
+                            description: "任务状态 (0: 未完成, 1: 已完成)",
+                        },
+                    },
+                    required: ["taskId"],
+                },
+            },
+            {
+                name: "delete_task",
+                description: "删除任务",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        taskId: {
+                            type: "string",
+                            description: "任务ID",
+                        },
+                    },
+                    required: ["taskId"],
+                },
+            },
+            {
+                name: "complete_task",
+                description: "完成任务",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        taskId: {
+                            type: "string",
+                            description: "任务ID",
+                        },
+                    },
+                    required: ["taskId"],
+                },
+            },
+            {
+                name: "get_projects",
+                description: "获取项目列表",
+                inputSchema: {
+                    type: "object",
+                    properties: {},
+                    required: [],
+                },
+            },
+            {
+                name: "create_project",
+                description: "创建新项目",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        name: {
+                            type: "string",
+                            description: "项目名称",
+                        },
+                        color: {
+                            type: "string",
+                            description: "项目颜色",
+                        },
+                        groupId: {
+                            type: "string",
+                            description: "项目组ID",
+                        },
+                    },
+                    required: ["name"],
+                },
+            },
+        ],
+    };
+});
+
+// 工具调用处理器
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    if (!args) {
+        throw new McpError(ErrorCode.InvalidRequest, "参数不能为空");
+    }
+
+    try {
+        switch (name) {
+            case "create_task": {
+                const task: Task = {
+                    title: args.title as string,
+                    projectId: args.projectId as string,
+                };
+
+                if (args.content) task.content = args.content as string;
+                if (args.dueDate) task.dueDate = args.dueDate as string;
+                if (args.priority !== undefined) task.priority = args.priority as number;
+
+                const response: AxiosResponse = await dida365Api.post("/task", task);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `任务创建成功: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+
+            case "get_tasks_by_projectId": {
+                const params: Record<string, any> = {};
+                if (args.projectId) params.projectId = args.projectId;
+                else throw new McpError(ErrorCode.InvalidRequest, "项目名称为空");
+                const response = await dida365Api.get(`/open/v1/project/${params.projectId}/data`);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `任务列表: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+
+            case "update_task": {
+                const taskId = args.taskId as string;
+                const updateData: Partial<Task> = {};
+
+                if (args.title) updateData.title = args.title as string;
+                if (args.content) updateData.content = args.content as string;
+                if (args.dueDate) updateData.dueDate = args.dueDate as string;
+                if (args.priority !== undefined) updateData.priority = args.priority as number;
+                if (args.status !== undefined) updateData.status = args.status as number;
+
+                const response: AxiosResponse = await dida365Api.put(`/task/${taskId}`, updateData);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `任务更新成功: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+
+            case "delete_task": {
+                const taskId = args.taskId as string;
+                await dida365Api.delete(`/task/${taskId}`);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `任务 ${taskId} 删除成功`,
+                        },
+                    ],
+                };
+            }
+
+            case "get_projects": {
+                const response: AxiosResponse<ProjectListResponse> = await dida365Api.get("/project");
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `项目列表: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+
+            case "create_project": {
+                const project: Project = {
+                    name: args.name as string,
+                    ...(args.color ? { color: args.color as string } : {}),
+                    ...(args.groupId ? { groupId: args.groupId as string } : {}),
+                };
+
+                const response: AxiosResponse = await dida365Api.post("/project", project);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `项目创建成功: ${JSON.stringify(response.data, null, 2)}`,
+                        },
+                    ],
+                };
+            }
+
+            default:
+                throw new McpError(
+                    ErrorCode.MethodNotFound,
+                    `未知工具: ${name}`
+                );
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const status = error.response?.status;
+            const message = error.response?.data?.message || error.message;
+            throw new McpError(
+                ErrorCode.InternalError,
+                `滴答清单API调用失败 (${status}): ${message}`
+            );
+        }
+        throw new McpError(
+            ErrorCode.InternalError,
+            `工具执行失败: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+});
+
+// 资源列表处理器
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    return {
+        resources: [
+            {
+                uri: "dida365://tasks",
+                mimeType: "application/json",
+                name: "滴答清单任务",
+                description: "获取所有任务的概览",
+            },
+            {
+                uri: "dida365://projects",
+                mimeType: "application/json",
+                name: "滴答清单项目",
+                description: "获取所有项目的概览",
+            },
+        ],
+    };
+});
+
+// 资源读取处理器
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const uri = request.params.uri;
+
+    try {
+        switch (uri) {
+            case "dida365://tasks": {
+                const response: AxiosResponse<TaskListResponse> = await dida365Api.get("/task");
+                return {
+                    contents: [
+                        {
+                            uri,
+                            mimeType: "application/json",
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            }
+
+            case "dida365://projects": {
+                const response: AxiosResponse<ProjectListResponse> = await dida365Api.get("/project");
+                return {
+                    contents: [
+                        {
+                            uri,
+                            mimeType: "application/json",
+                            text: JSON.stringify(response.data, null, 2),
+                        },
+                    ],
+                };
+            }
+
+            default:
+                throw new McpError(
+                    ErrorCode.InvalidRequest,
+                    `未知资源URI: ${uri}`
+                );
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            const status = error.response?.status;
+            const message = error.response?.data?.message || error.message;
+            throw new McpError(
+                ErrorCode.InternalError,
+                `滴答清单API调用失败 (${status}): ${message}`
+            );
+        }
+        throw new McpError(
+            ErrorCode.InternalError,
+            `资源获取失败: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+});
+
+// 启动服务器
+async function main() {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("滴答清单 MCP 服务已启动");
+}
+
+main().catch((error) => {
+    console.error("服务启动失败:", error);
+    process.exit(1);
+});

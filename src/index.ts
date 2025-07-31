@@ -237,19 +237,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 inputSchema: {
                     type: "object",
                     properties: {},
-                    required: [],
                 },
+                required: [],
             },
             {
                 name: "get_project_by_projectId",
                 description: "根据项目ID获取项目",
-                properties: {
-                    projectId: {
-                        type: "string",
-                        description: "项目ID"
-                    }
-                },
-                required: ["projectId"]
+                inputSchema: {  // 修正为 inputSchema
+                    type: "object",
+                    properties: {
+                        projectId: {
+                            type: "string",
+                            description: "项目ID"
+                        }
+                    },
+                    required: ["projectId"]
+                }
             },
             {
                 name: "create_project",
@@ -369,7 +372,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 if(!args.projectId||!args.taskId) throw new McpError(ErrorCode.InvalidRequest, "项目ID或任务ID为空")
                 if (args.projectId) params.projectId = args.projectId;
                 if (args.taskId) params.taskId = args.taskId;
-                const response = await dida365Api.get(`/open/v1/project/${params.projectId}/task/${params.taskId}`);
+                const response = await dida365Api.get(`/project/${params.projectId}/task/${params.taskId}`);
 
                 return {
                     content: [
@@ -384,7 +387,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const params: Record<string, any> = {};
                 if (args.projectId) params.projectId = args.projectId;
                 else throw new McpError(ErrorCode.InvalidRequest, "项目名称为空");
-                const response = await dida365Api.get(`/open/v1/project/${params.projectId}/data`);
+                const response = await dida365Api.get(`/project/${params.projectId}/data`);
 
                 return {
                     content: [

@@ -13,6 +13,36 @@
 
 ## 快速开始
 
+### 使用MCP (Node版本)
+
+#### DIDA官方获取token
+
+[OpenAPI - API Doc](https://developer.dida365.com/docs/index.html#/openapi?id=get-access-token)
+
+#### 下载
+
+```
+npm i dida365-mcp-servers
+```
+
+##### 配置json文件
+
+```json
+    "dida365": {
+      "command": "node",
+      "args": [
+ 			//your download path ; example:C:\\nvm4w\\nodejs\\node_modules\\dida365-mcp-servers\\dist
+      ],
+      "env": {
+        "DIDA365_TOKEN": your TOKEN
+      }
+    }
+```
+
+
+
+### 使用本地
+
 ### 1. 安装依赖
 
 ```bash

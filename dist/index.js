@@ -24,36 +24,42 @@ const dida365Api = axios.create({
 const server = new Server({
     name: "dida365-mcp-server",
     version: "1.0.0",
+}, {
+    capabilities: {
+        tools: {},
+        resources: {},
+    },
 });
+// 工具列表
 // 工具列表
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
             {
                 name: "create_task",
-                description: "创建新任务",
+                description: "Create a new task in Dida365 with specified details including title, project ID, content, due date and priority. The task will be created under the specified project. Requires at least title and projectId. Returns the created task details.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         title: {
                             type: "string",
-                            description: "任务标题",
+                            description: "The title/name of the task (required)",
                         },
                         projectId: {
                             type: "string",
-                            description: "项目ID",
+                            description: "The ID of the project where this task belongs (required)",
                         },
                         content: {
                             type: "string",
-                            description: "任务内容描述",
+                            description: "Detailed description/content of the task",
                         },
                         dueDate: {
                             type: "string",
-                            description: "截止日期 (ISO 8601格式)",
+                            description: "Due date in ISO 8601 format (e.g., 2023-12-31T23:59:59Z)",
                         },
                         priority: {
                             type: "number",
-                            description: "优先级 (0-5)",
+                            description: "Priority level from 0 (none) to 5 (highest)",
                         },
                     },
                     required: ["title", "projectId"],
@@ -61,17 +67,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_task_by_projectId_and_taskId",
-                description: "通过项目ID和任务ID获取任务",
+                description: "Retrieve a specific task's details by providing both the project ID and task ID. Returns complete task information including title, content, status, due date, priority, and subtasks if any.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         projectId: {
                             type: "string",
-                            description: "项目ID",
+                            description: "The ID of the project containing the task (required)"
                         },
                         taskId: {
                             type: "string",
-                            description: "任务ID"
+                            description: "The ID of the task to retrieve (required)"
                         }
                     },
                     required: ["projectId", "taskId"]
@@ -79,13 +85,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_tasks_by_projectId",
-                description: "通过项目ID获取项目中的任务列表",
+                description: "Get all tasks belonging to a specific project by project ID. Returns a list of tasks with their basic information. Useful for viewing all tasks in a project.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         projectId: {
                             type: "string",
-                            description: "项目ID",
+                            description: "The ID of the project whose tasks you want to list (required)",
                         },
                     },
                     required: ["projectId"],
@@ -93,33 +99,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "update_task",
-                description: "更新任务",
+                description: "Modify an existing task's properties. Can update title, content, due date, priority or status. At least taskId is required. Returns the updated task details.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         taskId: {
                             type: "string",
-                            description: "任务ID",
+                            description: "The ID of the task to update (required)",
                         },
                         title: {
                             type: "string",
-                            description: "任务标题",
+                            description: "New title for the task",
                         },
                         content: {
                             type: "string",
-                            description: "任务内容",
+                            description: "New content/description for the task",
                         },
                         dueDate: {
                             type: "string",
-                            description: "截止日期",
+                            description: "New due date in ISO 8601 format",
                         },
                         priority: {
                             type: "number",
-                            description: "优先级",
+                            description: "Updated priority level (0-5)",
                         },
                         status: {
                             type: "number",
-                            description: "任务状态 (0: 未完成, 1: 已完成)",
+                            description: "Task completion status (0: incomplete, 1: complete)",
                         },
                     },
                     required: ["taskId"],
@@ -127,17 +133,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "delete_task",
-                description: "删除任务",
+                description: "Permanently delete a task from a project. Requires both task ID and project ID for confirmation. Returns success message upon deletion.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         taskId: {
                             type: "string",
-                            description: "任务ID",
+                            description: "The ID of the task to delete (required)",
                         },
                         projectId: {
                             type: "string",
-                            description: "项目ID"
+                            description: "The ID of the project containing the task (required)"
                         }
                     },
                     required: ["taskId", "projectId"],
@@ -145,17 +151,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "complete_task",
-                description: "完成任务",
+                description: "Mark a task as completed. Requires both task ID and project ID. Updates the task's status to completed and sets completion timestamp.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         taskId: {
                             type: "string",
-                            description: "任务ID",
+                            description: "The ID of the task to mark as complete (required)",
                         },
                         projectId: {
                             type: "string",
-                            description: "项目ID"
+                            description: "The ID of the project containing the task (required)"
                         }
                     },
                     required: ["taskId", "projectId"],
@@ -163,7 +169,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_projects",
-                description: "获取项目列表",
+                description: "Retrieve a list of all projects in the Dida365 account. Returns project details including ID, name, color, view mode and sort order. No parameters required.",
                 inputSchema: {
                     type: "object",
                     properties: {},
@@ -172,13 +178,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_project_by_projectId",
-                description: "根据项目ID获取项目",
+                description: "Get detailed information about a specific project by its ID. Returns project metadata including name, color, view mode, kind and sort order.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         projectId: {
                             type: "string",
-                            description: "项目ID"
+                            description: "The ID of the project to retrieve (required)"
                         }
                     },
                     required: ["projectId"]
@@ -186,29 +192,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "create_project",
-                description: "创建新项目",
+                description: "Create a new project in Dida365. Requires at least a project name. Can specify color, view mode, kind and sort order. Returns the created project details.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         name: {
                             type: "string",
-                            description: "name of the project",
+                            description: "Name of the new project (required)",
                         },
                         color: {
                             type: "string",
-                            description: 'color of project, eg. "#F18181"',
+                            description: 'Hex color code for the project (e.g., "#F18181")',
                         },
                         sortOrder: {
-                            type: "integer (int64)",
-                            description: "sort order value, default 0"
+                            type: "integer",
+                            description: "Numerical sort order value (default 0)"
                         },
                         viewMode: {
                             type: "string",
-                            description: 'view mode, "list", "kanban", "timeline"'
+                            description: 'View mode: "list", "kanban", or "timeline"'
                         },
                         kind: {
                             type: "string",
-                            description: 'project kind, "TASK", "NOTE"'
+                            description: 'Project type: "TASK" or "NOTE"'
                         }
                     },
                     required: ["name"],
@@ -216,33 +222,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "update_project_by_projectID",
-                description: "根据projectId更新项目",
+                description: "Update an existing project's properties. Requires project ID. Can modify name, color, view mode, kind and sort order. Returns updated project details.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         projectId: {
                             type: "string",
-                            description: "项目Id"
+                            description: "The ID of the project to update (required)"
                         },
                         name: {
                             type: "string",
-                            description: "项目名称"
+                            description: "New name for the project"
                         },
                         color: {
                             type: "string",
-                            description: "项目颜色",
+                            description: "New hex color code for the project",
                         },
                         sortOrder: {
-                            type: "integer (int64)",
-                            description: "sort order value, default 0"
+                            type: "integer",
+                            description: "Updated sort order value"
                         },
                         viewMode: {
                             type: "string",
-                            description: 'view mode, "list", "kanban", "timeline"'
+                            description: 'Updated view mode: "list", "kanban", or "timeline"'
                         },
                         kind: {
                             type: "string",
-                            description: 'project kind, "TASK", "NOTE"'
+                            description: 'Updated project kind: "TASK" or "NOTE"'
                         }
                     },
                     required: ["projectId"],
@@ -250,13 +256,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "delete_project_by_projectID",
-                description: "根据projectId删除项目",
+                description: "Permanently delete a project by its ID. This will also delete all tasks within the project. Returns success message upon deletion.",
                 inputSchema: {
                     type: "object",
                     properties: {
                         projectId: {
                             type: "string",
-                            description: "项目Id"
+                            description: "The ID of the project to delete (required)"
                         }
                     },
                     required: ["projectId"],

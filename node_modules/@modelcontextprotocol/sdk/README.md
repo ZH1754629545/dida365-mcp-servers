@@ -1,4 +1,4 @@
-# mcp-typescript
+# MCP TypeScript SDK
 
 TypeScript implementation of the Model Context Protocol (MCP), providing both client and server capabilities for integrating with LLM surfaces.
 

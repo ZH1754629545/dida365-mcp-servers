@@ -4,6 +4,9 @@
     "description": "滴答清单 MCP 服务器",
     "main": "dist/index.js",
     "type": "module",
+    "bin": {
+        "dida365-mcp-servers": "dist/index.js"
+    },
     "scripts": {
         "build": "tsc",
         "start": "node dist/index.js",

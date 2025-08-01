@@ -318,20 +318,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     required: ["projectId"],
                 },
             },
-            {
-                name: "update_project_by_projectID",
-                description: "根据projectId删除项目",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        projectId:{
-                            type: "string",
-                            description: "项目Id"
-                        }
-                    },
-                    required: ["projectId"],
-                },
-            }
         ],
     };
 });
@@ -487,20 +473,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         {
                             type: "text",
                             text: `项目创建成功: ${JSON.stringify(response.data, null, 2)}`,
-                        },
-                    ],
-                };
-            }
-            case "update_project_by_projectID":{
-                const projectId:string = args.projectId as string;
-                throwValidError(projectId,"1");
-
-                const response: AxiosResponse = await dida365Api.delete(`/project/${projectId}`);
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `删除项目成功: ${JSON.stringify(response.data, null, 2)}`,
                         },
                     ],
                 };

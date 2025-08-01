@@ -1,6 +1,6 @@
 {
     "name": "dida365-mcp-servers",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "滴答清单 MCP 服务器",
     "main": "dist/index.js",
     "type": "module",
